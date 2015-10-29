@@ -9,9 +9,9 @@ var menuItems = [];
 var statData = [];
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var selected = 0;
-var statusLine = '';
-var req = '';
-var status = '';
+var statusLine;
+var req;
+var timeOut;
 
 // Create a splashscreen with title and subtitle
 var splashCard = new UI.Card({
@@ -27,6 +27,7 @@ var detailCard = new UI.Card({
     }
 });
 detailCard.on('show', function() {
+  clearTimeout(timeOut);
     statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
     statusLine += statData.thermostats[selected].override ? 'Over ' : '';
     statusLine += statData.thermostats[selected].hold ? 'Hold' : '';
@@ -54,66 +55,70 @@ detailCard.on('longClick', 'select', function() {
   setTherm(selected) ;   
 });
 
-function getStatus(k) {
-  //console.log('Getting status for '+statData.thermostats[k].name);
-        req = 'getjson.aspx?URL=http://' + statData.thermostats[k].ip + '/tstat&r=' + Math.random();
-          ajax({url: baseURL + req, type: 'json' },
-          function(data) {
-             statData.thermostats[k].t_heat=data.t_heat;
-             statData.thermostats[k].tstate=data.tstate;
-             statData.thermostats[k].hold=data.hold;
-             statData.thermostats[k].override=data.override;
-             status = statData.thermostats[k].name + ' ' + statData.thermostats[k].temp + '/' + statData.thermostats[k].t_heat;
-             status += statData.thermostats[k].tstate  ? ' (on)' : '';
-            resultsMenu.item(0, k, { title: status });
-            resultsMenu.section(0, { title: 'Got ' + statData.thermostats[k].name});
-            
-            //console.log('success getting Status for '+statData.thermostats[k].name);
-           },
-           function(error) {
-            console.log('failed to get Status for '+statData.thermostats[k].name);
-           }
-        );        
-}
-
-function getProgram(m) {
-  //console.log('Getting status for '+statData.thermostats[m].name);
-        req = 'getjson.aspx?URL=http://' + statData.thermostats[m].ip + '/tstat/program/heat&r=' + Math.random();
-          ajax({url: baseURL + req, type: 'json' },
-          function(data) {
-            //resultsMenu.section(0, { title: 'Set home '});
-            getStatus(m);
-           },
-           function(error) {
-            console.log('failed to get program for '+statData.thermostats[m].name);
-           }
-        );        
-}
-
-function setHome(n) {
-      req = 'postjson.aspx?URL=http://' + statData.thermostats[n].ip;
-    req += '/tstat&json={"tmode":1,"hold":0}&r=' + Math.random();
-
-    ajax({url: baseURL + req, type: 'text' },
+function getStatus(i) {
+    //console.log('Getting status for '+statData.thermostats[k].name);
+    req = 'getjson.aspx?URL=http://' + statData.thermostats[i].ip + '/tstat&r=' + Math.random();
+    ajax({
+            url: baseURL + req,
+            type: 'json'
+        },
         function(data) {
-            getProgram(n);
+            statData.thermostats[i].temp = data.temp;
+            statData.thermostats[i].t_heat = data.t_heat;
+            statData.thermostats[i].tstate = data.tstate;
+            statData.thermostats[i].hold = data.hold;
+            statData.thermostats[i].override = data.override;
+            resultsMenu.item(0, i, {
+                subtitle: status(i)
+            });
+            resultsMenu.section(0, {
+                title: 'Got ' + statData.thermostats[i].name
+            });
         },
         function(error) {
-            console.log('failed to set Home for '+statData.thermostats[n].name);
+            console.log('failed to get Status for ' + statData.thermostats[i].name);
         }
     );
 }
 
-function setAway(n) {
-      req = 'postjson.aspx?URL=http://' + statData.thermostats[n].ip;
+function getProgram(i) {
+  //console.log('Getting status for '+statData.thermostats[m].name);
+        req = 'getjson.aspx?URL=http://' + statData.thermostats[i].ip + '/tstat/program/heat&r=' + Math.random();
+          ajax({url: baseURL + req, type: 'json' },
+          function(data) {
+            //resultsMenu.section(0, { title: 'Set home '});
+            getStatus(i);
+           },
+           function(error) {
+            console.log('failed to get program for '+statData.thermostats[i].name);
+           }
+        );        
+}
+
+function setHome(i) {
+      req = 'postjson.aspx?URL=http://' + statData.thermostats[i].ip;
+    req += '/tstat&json={"tmode":1,"hold":0}&r=' + Math.random();
+
+    ajax({url: baseURL + req, type: 'text' },
+        function(data) {
+            getProgram(i);
+        },
+        function(error) {
+            console.log('failed to set Home for '+statData.thermostats[i].name);
+        }
+    );
+}
+
+function setAway(i) {
+      req = 'postjson.aspx?URL=http://' + statData.thermostats[i].ip;
     req += '/tstat&json={"tmode":1,"t_heat":61,"hold":1}&r=' + Math.random();
 
     ajax({url: baseURL + req, type: 'text' },
         function(data) {
-            getStatus(n);
+            getStatus(i);
         },
         function(error) {
-            console.log('failed to set Home for '+statData.thermostats[n].name);
+            console.log('failed to set Home for '+statData.thermostats[i].name);
         }
     );
 }
@@ -134,6 +139,14 @@ function setTherm(i) {
     );
 }
 
+function status(i) {
+  var subTitle = statData.thermostats[i].temp + ' / ' + statData.thermostats[i].t_heat;
+  subTitle += statData.thermostats[i].tstate ? 'On ' : '';
+  subTitle += statData.thermostats[i].override ? 'Over ' : '';
+  subTitle += statData.thermostats[i].hold ? 'Hold' : '';
+  return subTitle;
+}
+
 resultsMenu = new UI.Menu({
     sections: [{
       title: 'Thermostats',
@@ -147,7 +160,8 @@ resultsMenu.on('show', function() {
     //  getStatus(j);
     //}
   getStatus(selected);
-  
+  // exit after 2 minutes
+  timeOut = setTimeout(function () { resultsMenu.hide(); },120000);
 });
 resultsMenu.on('select', function(e) {
     selected = e.itemIndex;
@@ -155,15 +169,16 @@ resultsMenu.on('select', function(e) {
 });
 resultsMenu.on('longSelect', function(e) {
     // toggle home/away for all
+  var i;
   if(( statData.thermostats[0].t_heat == 61) && statData.thermostats[0].hold ) {
     resultsMenu.section(0, { title: 'Setting Home'});
-  for (var i = 0; i < statData.count; i++) {
+  for (i = 0; i < statData.count; i++) {
     setHome(i);
   }    
   } else {
     resultsMenu.section(0, { title: 'Setting Away'});
-   for (var j = 0; j < statData.count; j++) {
-    setAway(j);
+   for (i = 0; i < statData.count; i++) {
+    setAway(i);
   }       
   }
 
@@ -178,10 +193,9 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
         statData = data;
         // load menu items
         for (var i = 0; i < statData.count; i++) {
-            var status = statData.thermostats[i].name + ' ' + statData.thermostats[i].temp + '/' + statData.thermostats[i].t_heat;
-            status += statData.thermostats[i].tstate  ? ' (on)' : '';
             menuItems.push({
-                title: status
+                title: statData.thermostats[i].name,
+              subtitle: status(i)
             });
         }
         // Show the Menu, hide the splash
