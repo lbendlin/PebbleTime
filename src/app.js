@@ -31,20 +31,20 @@ detailCard.on('show', function() {
     statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
     statusLine += statData.thermostats[selected].override ? 'Over ' : '';
     statusLine += statData.thermostats[selected].hold ? 'Hold' : '';
-    detailCard.title(statData.thermostats[selected].name);
-    detailCard.subtitle(statData.thermostats[selected].temp);
+    detailCard.title(statData.thermostats[selected].name + ' ' + statData.thermostats[selected].temp);
+    detailCard.subtitle('Target ' + statData.thermostats[selected].t_heat);
     // target temp, heating on, override, hold
-    detailCard.body('Target:' + statData.thermostats[selected].t_heat + '\n' + statusLine + '\nOutside:' + statData.outside);
+    detailCard.body(statusLine + '\nOutside:' + statData.outside);
 });
 detailCard.on('click', 'up', function() {
     // Up click detected!
     statData.thermostats[selected].t_heat++;
-    detailCard.body('Target:' + statData.thermostats[selected].t_heat + '\n' + statusLine + '\nOutside:' + statData.outside);
+    detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
 });
 detailCard.on('click', 'down', function() {
     // Down click detected!
     statData.thermostats[selected].t_heat--;
-    detailCard.body('Target:' + statData.thermostats[selected].t_heat + '\n' + statusLine + '\nOutside:' + statData.outside);
+    detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
 });
 detailCard.on('click', 'select', function() {
   setTherm(selected) ; 
@@ -141,9 +141,9 @@ function setTherm(i) {
 
 function status(i) {
   var subTitle = statData.thermostats[i].temp + ' / ' + statData.thermostats[i].t_heat;
-  subTitle += statData.thermostats[i].tstate ? 'On ' : '';
-  subTitle += statData.thermostats[i].override ? 'Over ' : '';
-  subTitle += statData.thermostats[i].hold ? 'Hold' : '';
+  subTitle += statData.thermostats[i].tstate ? ' On' : '';
+  subTitle += statData.thermostats[i].override ? ' Over' : '';
+  subTitle += statData.thermostats[i].hold ? ' Hold' : '';
   return subTitle;
 }
 
