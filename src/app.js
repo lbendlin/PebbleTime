@@ -12,11 +12,47 @@ var selected = 0;
 var statusLine;
 var req;
 var timeOut;
+var firstTime = true;
+var doorClosed = 1;
 
 // Create a splashscreen with title and subtitle
 var splashCard = new UI.Card({
     title: 'Thermostats',
     subtitle: 'Fetching status...'
+});
+
+var doorCard = new UI.Card({
+    action: {
+        select: 'images/confirm.png'
+    }
+});
+
+doorCard.on('show', function() {
+  clearTimeout(timeOut);
+  statusLine = 'Door is ';
+  statusLine += doorClosed ? 'closed.' : 'open.';
+  doorCard.title(statusLine);
+  statusLine = 'Select to ';
+  statusLine += doorClosed ? 'open it.' : 'close it.';
+  doorCard.subtitle(statusLine);
+});
+
+doorCard.on('click', 'select', function() {
+  statusLine = doorClosed ? "Open" : "Clos";
+  statusLine += 'ing door...';
+  doorCard.title(statusLine);  
+  doorCard.subtitle('');
+  req = 'setdooractionpebble.aspx';
+     ajax({url: baseURL + req, type: 'text' },
+        function(data) {
+          doorCard.title(data);  
+          doorClosed = data.indexOf('closed') != -1 ? 1 : 0;
+          setTimeout(function () { doorCard.hide(); },5000);
+        },
+        function(error) {
+            doorCard.body('failed to operate door');
+        }
+    );   
 });
 
 var detailCard = new UI.Card({
@@ -26,6 +62,7 @@ var detailCard = new UI.Card({
         down: 'images/minus.png'
     }
 });
+
 detailCard.on('show', function() {
   clearTimeout(timeOut);
     statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
@@ -139,6 +176,24 @@ function setTherm(i) {
     );
 }
 
+function getDoorStatus(i) {
+    req = 'getdoorstatus.asp';
+    ajax({
+            url: baseURL + req,
+            type: 'json'
+        },
+        function(data) {
+          doorClosed = data.doorClosed;  
+            resultsMenu.item(1, 0, {
+                subtitle: doorClosed == 1 ? 'closed' : 'open'
+            });
+        },
+        function(error) {
+            console.log('failed to get garage door status');
+        }
+    );
+}
+
 function status(i) {
   var subTitle = statData.thermostats[i].temp + ' / ' + statData.thermostats[i].t_heat;
   subTitle += statData.thermostats[i].tstate ? ' On' : '';
@@ -151,21 +206,40 @@ resultsMenu = new UI.Menu({
     sections: [{
       title: 'Thermostats',
         items: menuItems
+    },{
+      title: 'Garage',
+        items: [{
+                title: 'Garage door is' ,
+          subtitle: doorClosed == 1 ? 'closed' : 'open'
+            }]
     }]
 });
-// refresh data from actual stats. all or just the one we touched?
+// refresh data from actual stats. all on first call, then just the one we touched
 resultsMenu.on('show', function() {
-    //for (var j = 0; j < statData.count; j++) {
+  if (firstTime) {
+    firstTime = false;
+    for (var i = 0; i < statData.count; i++) {
         // ajax call to get new status, update menu
-    //  getStatus(j);
-    //}
-  getStatus(selected);
+      getStatus(i);
+    } 
+    getDoorStatus();
+  } else {
+    getStatus(selected);
+    resultsMenu.item(1, 0, {
+                subtitle: doorClosed == 1 ? 'closed' : 'open'
+    });  }
+
+  
   // exit after 2 minutes
   timeOut = setTimeout(function () { resultsMenu.hide(); },120000);
 });
 resultsMenu.on('select', function(e) {
+  if(e.sectionIndex == 0) {
     selected = e.itemIndex;
     detailCard.show();
+  } else {
+    doorCard.show();
+  }
 });
 resultsMenu.on('longSelect', function(e) {
     // toggle home/away for all
