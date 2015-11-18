@@ -1,8 +1,8 @@
 var UI = require('ui');
 var ajax = require('ajax');
 //var Vector2 = require('vector2');
-//var Accel = require('ui/accel');
-//var Vibe = require('ui/vibe');
+var Accel = require('ui/accel');
+var Vibe = require('ui/vibe');
 
 var resultsMenu ;
 var menuItems = [];
@@ -26,7 +26,6 @@ var doorCard = new UI.Card({
         select: 'images/confirm.png'
     }
 });
-
 doorCard.on('show', function() {
   clearTimeout(timeOut);
   statusLine = 'Door is ';
@@ -35,8 +34,8 @@ doorCard.on('show', function() {
   statusLine = 'Select to ';
   statusLine += doorClosed ? 'open it.' : 'close it.';
   doorCard.subtitle(statusLine);
+  timeOut = setTimeout(function () { doorCard.hide(); },120000);
 });
-
 doorCard.on('click', 'select', function() {
   statusLine = doorClosed ? "Open" : "Clos";
   statusLine += 'ing door...';
@@ -45,7 +44,8 @@ doorCard.on('click', 'select', function() {
   req = 'setdooractionpebble.aspx';
      ajax({url: baseURL + req, type: 'text' },
         function(data) {
-          doorCard.title(data);  
+          doorCard.title(data);
+          Vibe.vibrate('short');
           doorClosed = data.indexOf('closed') != -1 ? 1 : 0;
           setTimeout(function () { doorCard.hide(); },5000);
         },
@@ -62,7 +62,6 @@ var detailCard = new UI.Card({
         down: 'images/minus.png'
     }
 });
-
 detailCard.on('show', function() {
   clearTimeout(timeOut);
     statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
@@ -72,6 +71,7 @@ detailCard.on('show', function() {
     detailCard.subtitle('Target ' + statData.thermostats[selected].t_heat);
     // target temp, heating on, override, hold
     detailCard.body(statusLine + '\nOutside:' + statData.outside);
+    timeOut = setTimeout(function () { detailCard.hide(); },120000);
 });
 detailCard.on('click', 'up', function() {
     // Up click detected!
@@ -212,6 +212,8 @@ resultsMenu = new UI.Menu({
                 title: 'Garage door is' ,
           subtitle: doorClosed == 1 ? 'closed' : 'open'
             }]
+    },{
+      title: 'v1.01 20151118',
     }]
 });
 // refresh data from actual stats. all on first call, then just the one we touched
@@ -283,6 +285,10 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
 );
 
 // Prepare the accelerometer
-//Accel.init();
+Accel.init();
+Accel.on('tap', function(e) {
+  console.log('Tap event on axis: ' + e.axis + ' and direction: ' + e.direction);
+  doorCard.show();
+});
 // Notify the user
 //Vibe.vibrate('short');
