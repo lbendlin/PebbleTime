@@ -30,11 +30,6 @@
                 "type": "font"
             },
             {
-                "file": "images/menu_icon.png",
-                "name": "IMAGES_MENU_ICON_PNG",
-                "type": "png"
-            },
-            {
                 "file": "images/confirm.png",
                 "name": "IMAGES_CONFIRM_PNG",
                 "type": "png"
@@ -54,7 +49,6 @@
     "sdkVersion": "3",
     "shortName": "Stats",
     "targetPlatforms": [
-        "aplite",
         "basalt"
     ],
     "uuid": "1748922f-5f56-4efb-b65e-de162b065670",
