@@ -34,7 +34,7 @@ doorCard.on('show', function() {
   statusLine = 'Select to ';
   statusLine += doorClosed ? 'open it.' : 'close it.';
   doorCard.subtitle(statusLine);
-  timeOut = setTimeout(function () { doorCard.hide(); },120000);
+  timeOut = setTimeout(function () { doorCard.hide(); },60000);
 });
 doorCard.on('click', 'select', function() {
   statusLine = doorClosed ? "Open" : "Clos";
@@ -71,7 +71,7 @@ detailCard.on('show', function() {
     detailCard.subtitle('Target ' + statData.thermostats[selected].t_heat);
     // target temp, heating on, override, hold
     detailCard.body(statusLine + '\nOutside:' + statData.outside);
-    timeOut = setTimeout(function () { detailCard.hide(); },120000);
+    timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
 detailCard.on('click', 'up', function() {
     // Up click detected!
@@ -213,7 +213,7 @@ resultsMenu = new UI.Menu({
           subtitle: doorClosed == 1 ? 'closed' : 'open'
             }]
     },{
-      title: 'v1.01 20151118',
+      title: 'v1.02 20151203',
     }]
 });
 // refresh data from actual stats. all on first call, then just the one we touched
@@ -229,11 +229,11 @@ resultsMenu.on('show', function() {
     getStatus(selected);
     resultsMenu.item(1, 0, {
                 subtitle: doorClosed == 1 ? 'closed' : 'open'
-    });  }
-
-  
-  // exit after 2 minutes
-  timeOut = setTimeout(function () { resultsMenu.hide(); },120000);
+    });  
+    clearTimeout(timeOut);
+  }
+  // exit after 1 minute
+  timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
 });
 resultsMenu.on('select', function(e) {
   if(e.sectionIndex == 0) {
