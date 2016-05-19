@@ -1,9 +1,9 @@
 var UI = require('ui');
 var ajax = require('ajax');
-var Accel = require('ui/accel');
+//var Accel = require('ui/accel');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.07 20160406';
+var version = 'v1.08 20160518';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var resultsMenu ;
 var menuItems = [];
@@ -19,7 +19,7 @@ var doorClosed = 1;
 
 // Create a splashscreen with title and subtitle
 var splashCard = new UI.Card({
-    title: 'Thermostats',
+    title: 'Home Smart Home',
     subtitle: 'Fetching status...'
 });
 
@@ -248,7 +248,7 @@ function getForecast() {
 
 resultsMenu = new UI.Menu({
     sections: [{
-      title: 'Garage',
+      //title: 'Garage',
         items: [{
                 title: 'Garage door is' ,
           subtitle: doorClosed == 1 ? 'closed' : 'open'
@@ -303,24 +303,24 @@ resultsMenu.on('select', function(e) {
   }
 });
 resultsMenu.on('longSelect', function(e) {
-  // operate garage door without confirmation  
  
   Vibe.vibrate('short');
     timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
  switch(e.sectionIndex) {
+  // operate garage door without confirmation  
     case 0:
-     resultsMenu.section(0, { title: 'Operating door'});
+     resultsMenu.item(0, 0, { title: 'Operating door'});
+     resultsMenu.item(0, 0, { subtitle: ''});
      req = 'setdooractionpebble.aspx';
      ajax({url: baseURL + req, type: 'text' },
         function(data) {
           Vibe.vibrate('short');
           doorClosed = data.indexOf('closed') != -1 ? 1 : 0;
-          resultsMenu.section(0, { title: 'Garage door is'});
+          resultsMenu.item(0, 0, { title: 'Garage door is'});
           resultsMenu.item(0, 0, {subtitle: doorClosed == 1 ? 'closed' : 'open' });  
          },
         function(error) {
-          resultsMenu.item(0, 0, { subtitle: 'Failed to operate door'});  
-         
+          resultsMenu.item(0, 0, { title: 'Failed to operate door'});  
         }
           
     ); 
@@ -372,9 +372,9 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
 );
 
 // Prepare the accelerometer
-Accel.init();
+//Accel.init();
 // show garage screen when shaking watch
-Accel.on('tap', function(e) {
+//Accel.on('tap', function(e) {
   //console.log('Tap event on axis: ' + e.axis + ' and direction: ' + e.direction);
-  doorCard.show();
-});
+//  doorCard.show();
+//});
