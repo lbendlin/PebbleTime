@@ -3,7 +3,7 @@ var ajax = require('ajax');
 //var Accel = require('ui/accel');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.08 20160518';
+var version = 'v1.09 20161210';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var resultsMenu ;
 var menuItems = [];
@@ -215,7 +215,7 @@ function status(i) {
 
 function getForecast() {
   //get weather data
- ajax({url: 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/01721.json', type: 'json'},
+ ajax({url: 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json', type: 'json'},
     function(data) {
         // load weather forecast items
       hasForecast = true;
@@ -249,18 +249,18 @@ function getForecast() {
 resultsMenu = new UI.Menu({
     sections: [{
       //title: 'Garage',
-        items: [{
-                title: 'Garage door is' ,
-          subtitle: doorClosed == 1 ? 'closed' : 'open'
-            }]
+ //       items: [{
+ //               title: 'Garage door is' ,
+ //         subtitle: doorClosed == 1 ? 'closed' : 'open'
+ //           }]
     },{
       title: 'Thermostats',
         items: menuItems
     },{
-      title: 'Current Outside',
+      title: 'Outside',
         items: forecastItems
     },{
-      title: version,
+      title: version
     }]
 });
 // refresh data from actual stats. all on first call, then just the one we touched
@@ -271,12 +271,12 @@ resultsMenu.on('show', function() {
         // ajax call to get new status, update menu
       getStatus(i);
     } 
-    getDoorStatus();
+    // getDoorStatus();
   } else {
     getStatus(selected);
-    resultsMenu.item(0, 0, {
-                subtitle: doorClosed == 1 ? 'closed' : 'open'
-    });  
+//    resultsMenu.item(0, 0, {
+//                subtitle: doorClosed == 1 ? 'closed' : 'open'
+//    });  
     //clearTimeout(timeOut);
   }
   // exit after 1 minute
@@ -295,7 +295,7 @@ resultsMenu.on('select', function(e) {
       //get forecast ?
       if (hasForecast)
         break;
-      resultsMenu.section(2, {
+      resultsMenu.section(e.sectionIndex, {
             title: 'Getting Forecast ...'
         });
       getForecast();
@@ -359,7 +359,7 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
             });
         }
         forecastItems.push({
-          title: 'Temp: ' + statData.outside + 'F'
+          title: 'T: ' + statData.outside + 'F H: ' + statData.humidity
         });
         // Show the Menu, hide the splash
         resultsMenu.show();

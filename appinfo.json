@@ -10,7 +10,6 @@
         "media": [
             {
                 "file": "images/menu_icon.png",
-                "menuIcon": true,
                 "name": "IMAGE_MENU_ICON",
                 "type": "bitmap"
             },
@@ -41,6 +40,7 @@
             },
             {
                 "file": "images/confirm.png",
+                "menuIcon": true,
                 "name": "IMAGES_CONFIRM_PNG",
                 "type": "bitmap"
             }
@@ -49,12 +49,11 @@
     "sdkVersion": "3",
     "shortName": "Stats",
     "targetPlatforms": [
-        "aplite",
         "basalt"
     ],
     "uuid": "1748922f-5f56-4efb-b65e-de162b065670",
     "versionCode": 1,
-    "versionLabel": "1.7",
+    "versionLabel": "1.8",
     "watchapp": {
         "hiddenApp": false,
         "watchface": false
