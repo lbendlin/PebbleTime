@@ -3,62 +3,78 @@ var ajax = require('ajax');
 //var Accel = require('ui/accel');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.09 20161210';
+var version = 'v1.10 20161214';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
+var garageURL = 'http://lbendlin.dyndns.info:8082/doors.json';
+var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
 var resultsMenu ;
 var menuItems = [];
 var forecastItems = [];
+var doorItems = [];
 var statData = [];
+var doors = [];
 var selected = 0;
 var statusLine;
 var req;
 var timeOut;
 var firstTime = true;
 var hasForecast = false;
-var doorClosed = 1;
 
 // Create a splashscreen with title and subtitle
 var splashCard = new UI.Card({
     title: 'Home Smart Home',
+    //titleColor: 'Blue',
     subtitle: 'Fetching status...'
 });
 
 var doorCard = new UI.Card({
     action: {
-        //up: 'images/plus.png',
-        select: 'IMAGES_CONFIRM_PNG'//,
-        //down: 'images/minus.png'
+        up: 'IMAGES_CONFIRM_PNG',
+        //select: 'IMAGES_CONFIRM_PNG'//,
+        down: 'IMAGES_CONFIRM_PNG'
     }
 });
+
 doorCard.on('show', function() {
   //clearTimeout(timeOut);
-  statusLine = 'Door is ';
-  statusLine += doorClosed ? 'closed.' : 'open.';
+  statusLine = doors[0].name +' Door is ';
+  statusLine += doors[0].status + '.\n\n';
+  statusLine += doors[1].name +' Door is ';
+  statusLine += doors[1].status + '.';
   doorCard.title(statusLine);
-  statusLine = 'Select to ';
-  statusLine += doorClosed ? 'open it.' : 'close it.';
-  doorCard.subtitle(statusLine);
   timeOut = setTimeout(function () { doorCard.hide(); },60000);
 });
-doorCard.on('click', 'select', function() {
-  //clearTimeout(timeOut);
-  statusLine = doorClosed ? "Open" : "Clos";
-  statusLine += 'ing door...';
-  doorCard.title(statusLine);  
-  doorCard.subtitle('');
-  req = 'setdooractionpebble.aspx';
-     ajax({url: baseURL + req, type: 'text' },
+
+doorCard.on('click', 'up', function() {
+  clearTimeout(timeOut);
+  doorCard.title('Operating ' + doors[0].name + ' door...');  
+  req = 'setdooractionpebble.aspx?d=' + doors[0].port;
+     ajax({url: baseURL + req, type: 'json' },
         function(data) {
-          doorCard.title(data);
+          doors=data.doors;
           Vibe.vibrate('short');
-          doorClosed = data.indexOf('closed') != -1 ? 1 : 0;
-          setTimeout(function () { doorCard.hide(); },5000);
+          doorCard.hide();
         },
         function(error) {
-            doorCard.body('failed to operate door');
+            doorCard.title('Failed to operate ' + doors[0].name + ' door');
         }
     ); 
-  timeOut = setTimeout(function () { doorCard.hide(); },60000);
+});
+
+doorCard.on('click', 'down', function() {
+  clearTimeout(timeOut);
+  doorCard.title('Operating ' + doors[1].name + ' door...');  
+  req = 'setdooractionpebble.aspx?d=' + doors[1].port;
+     ajax({url: baseURL + req, type: 'json' },
+        function(data) {
+          doors=data.doors;
+          Vibe.vibrate('short');
+          doorCard.hide();
+        },
+        function(error) {
+            doorCard.title('Failed to operate ' + doors[1].name + ' door');
+        }
+    ); 
 });
 
 var detailCard = new UI.Card({
@@ -68,6 +84,7 @@ var detailCard = new UI.Card({
         down: 'IMAGES_MINUS_PNG'
     }
 });
+
 detailCard.on('show', function() {
   //clearTimeout(timeOut);
     statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
@@ -75,10 +92,10 @@ detailCard.on('show', function() {
     statusLine += statData.thermostats[selected].hold ? 'Hold' : '';
     detailCard.title(statData.thermostats[selected].name + ' ' + statData.thermostats[selected].temp);
     detailCard.subtitle('Target ' + statData.thermostats[selected].t_heat);
-    // target temp, heating on, override, hold
     detailCard.body(statusLine + '\nOutside:' + statData.outside);
     timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
+
 detailCard.on('click', 'up', function() {
     // Up click detected!
   //clearTimeout(timeOut);
@@ -86,6 +103,7 @@ detailCard.on('click', 'up', function() {
     detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
   timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
+
 detailCard.on('click', 'down', function() {
     // Down click detected!
   //clearTimeout(timeOut);
@@ -93,9 +111,11 @@ detailCard.on('click', 'down', function() {
     detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
   timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
+
 detailCard.on('click', 'select', function() {
   setTherm(selected) ; 
 });
+
 // toggle hold
 detailCard.on('longClick', 'select', function() {
   Vibe.vibrate('short');
@@ -106,10 +126,7 @@ detailCard.on('longClick', 'select', function() {
 function getStatus(i) {
     //console.log('Getting status for '+statData.thermostats[k].name);
     req = 'getjson.aspx?URL=http://' + statData.thermostats[i].ip + '/tstat&r=' + Math.random();
-    ajax({
-            url: baseURL + req,
-            type: 'json'
-        },
+    ajax({url: baseURL + req, type: 'json'},
         function(data) {
             statData.thermostats[i].temp = data.temp;
             statData.thermostats[i].t_heat = data.t_heat;
@@ -130,11 +147,10 @@ function getStatus(i) {
 }
 
 function getProgram(i) {
-  //console.log('Getting status for '+statData.thermostats[m].name);
+  //needed to unset the Away mode
         req = 'getjson.aspx?URL=http://' + statData.thermostats[i].ip + '/tstat/program/heat&r=' + Math.random();
           ajax({url: baseURL + req, type: 'json' },
           function(data) {
-            //resultsMenu.section(1, { title: 'Set home '});
             getStatus(i);
            },
            function(error) {
@@ -166,7 +182,7 @@ function setAway(i) {
             getStatus(i);
         },
         function(error) {
-            console.log('failed to set Home for '+statData.thermostats[i].name);
+            console.log('failed to set Away for '+statData.thermostats[i].name);
         }
     );
 }
@@ -187,16 +203,15 @@ function setTherm(i) {
     );
 }
 
-function getDoorStatus(i) {
-    req = 'getdoorstatus.asp';
-    ajax({
-            url: baseURL + req,
-            type: 'json'
-        },
+function getDoorStatus() {
+ //can be had from the http server on the raspigarage
+  //console.log('getting door status from ' + garageURL);
+    ajax({ url: garageURL, type: 'json' },
         function(data) {
-          doorClosed = data.doorClosed;  
-            resultsMenu.item(0, 0, {
-                subtitle: doorClosed == 1 ? 'closed' : 'open'
+          doors = data.doors;
+            resultsMenu.item(0, 0, { 
+              title: doors[0].name + '    ' + doors[1].name,
+              subtitle: (doors[0].status + '       ').substring(0,11) + doors[1].status 
             });
         },
         function(error) {
@@ -215,7 +230,7 @@ function status(i) {
 
 function getForecast() {
   //get weather data
- ajax({url: 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json', type: 'json'},
+ ajax({url: weatherURL, type: 'json'},
     function(data) {
         // load weather forecast items
       hasForecast = true;
@@ -243,16 +258,13 @@ function getForecast() {
             }]
         });
     }
-);
+  );
 }
 
 resultsMenu = new UI.Menu({
     sections: [{
-      //title: 'Garage',
- //       items: [{
- //               title: 'Garage door is' ,
- //         subtitle: doorClosed == 1 ? 'closed' : 'open'
- //           }]
+      title: 'Garage',
+        items: doorItems
     },{
       title: 'Thermostats',
         items: menuItems
@@ -263,25 +275,22 @@ resultsMenu = new UI.Menu({
       title: version
     }]
 });
+
 // refresh data from actual stats. all on first call, then just the one we touched
 resultsMenu.on('show', function() {
   if (firstTime) {
     firstTime = false;
-    for (var i = 0; i < statData.count; i++) {
+    for (var i = 0; i < statData.thermostatcount; i++) {
         // ajax call to get new status, update menu
       getStatus(i);
     } 
-    // getDoorStatus();
   } else {
     getStatus(selected);
-//    resultsMenu.item(0, 0, {
-//                subtitle: doorClosed == 1 ? 'closed' : 'open'
-//    });  
-    //clearTimeout(timeOut);
   }
-  // exit after 1 minute
+  getDoorStatus();
   timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
 });
+
 resultsMenu.on('select', function(e) {
   switch(e.sectionIndex) {
     case 0:
@@ -302,45 +311,44 @@ resultsMenu.on('select', function(e) {
       break;
   }
 });
+
 resultsMenu.on('longSelect', function(e) {
  
   Vibe.vibrate('short');
-    timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
+  timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
  switch(e.sectionIndex) {
-  // operate garage door without confirmation  
+  // operate right garage door without confirmation  
     case 0:
-     resultsMenu.item(0, 0, { title: 'Operating door'});
-     resultsMenu.item(0, 0, { subtitle: ''});
-     req = 'setdooractionpebble.aspx';
-     ajax({url: baseURL + req, type: 'text' },
+     resultsMenu.item(0, 0, { title: 'Operating ' + doors[1].name + ' door',subtitle: ''});
+     req = 'setdooractionpebble.aspx?d=' + doors[1].port;
+     ajax({url: baseURL + req, type: 'json' },
         function(data) {
+          doors=data.doors;
           Vibe.vibrate('short');
-          doorClosed = data.indexOf('closed') != -1 ? 1 : 0;
-          resultsMenu.item(0, 0, { title: 'Garage door is'});
-          resultsMenu.item(0, 0, {subtitle: doorClosed == 1 ? 'closed' : 'open' });  
+          resultsMenu.item(0, 0, {  title: doors[0].name + '     ' + doors[1].name,
+              subtitle: (doors[0].status + '       ').substring(0,11) + doors[1].status });
          },
         function(error) {
           resultsMenu.item(0, 0, { title: 'Failed to operate door'});  
         }
-          
     ); 
-           break;
+    break;
       // toggle home/away for all thermostats
     case 1: 
 
-  var i;
-  if(( statData.thermostats[0].t_heat == 61) && statData.thermostats[0].hold ) {
-    resultsMenu.section(1, { title: 'Setting Home'});
-  for (i = 0; i < statData.count; i++) {
-    setHome(i);
-  }    
-  } else {
-    resultsMenu.section(1, { title: 'Setting Away'});
-   for (i = 0; i < statData.count; i++) {
-    setAway(i);
-  }       
-  }
-  break;
+      var i;
+      if(( statData.thermostats[0].t_heat == 61) && statData.thermostats[0].hold ) {
+        resultsMenu.section(1, { title: 'Setting Home'});
+        for (i = 0; i < statData.thermostatcount; i++) {
+          setHome(i);
+        }    
+      } else {
+        resultsMenu.section(1, { title: 'Setting Away'});
+        for (i = 0; i < statData.thermostatcount; i++) {
+          setAway(i);
+        }       
+      }
+    break;
  }
 });
 
@@ -351,17 +359,23 @@ splashCard.show();
 ajax({url: baseURL + 'tall.asp', type: 'json'},
     function(data) {
         statData = data;
-        // load menu items
-        for (var i = 0; i < statData.count; i++) {
+        // load doors. ignoring count
+        doors = data.doors;
+        doorItems.push({  title: doors[0].name + '     ' + doors[1].name,
+              subtitle: (doors[0].status + '       ').substring(0,11) + doors[1].status });
+        // load thermostats
+        for (var i = 0; i < statData.thermostatcount; i++) {
             menuItems.push({
                 title: statData.thermostats[i].name,
               subtitle: status(i)
             });
         }
+        //load current weather
         forecastItems.push({
-          title: 'T: ' + statData.outside + 'F H: ' + statData.humidity
+          title: 'Temp: ' + statData.outside + 'F',
+          subtitle: 'Humidity: ' + statData.humidity
         });
-        // Show the Menu, hide the splash
+        // Show the Menu, remove the splash
         resultsMenu.show();
         splashCard.hide();
     },
@@ -370,11 +384,3 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
         splashCard.subtitle('Cannot connect to thermostats');
     }
 );
-
-// Prepare the accelerometer
-//Accel.init();
-// show garage screen when shaking watch
-//Accel.on('tap', function(e) {
-  //console.log('Tap event on axis: ' + e.axis + ' and direction: ' + e.direction);
-//  doorCard.show();
-//});
