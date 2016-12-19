@@ -45,7 +45,7 @@ doorCard.on('show', function() {
   timeOut = setTimeout(function () { doorCard.hide(); },60000);
 });
 
-doorCard.on('click', 'up', function() {
+doorCard.on('longClick', 'up', function() {
   clearTimeout(timeOut);
   doorCard.title('Operating ' + doors[0].name + ' door...');  
   req = 'setdooractionpebble.aspx?d=' + doors[0].port;
@@ -61,7 +61,7 @@ doorCard.on('click', 'up', function() {
     ); 
 });
 
-doorCard.on('click', 'down', function() {
+doorCard.on('longClick', 'down', function() {
   clearTimeout(timeOut);
   doorCard.title('Operating ' + doors[1].name + ' door...');  
   req = 'setdooractionpebble.aspx?d=' + doors[1].port;
@@ -329,7 +329,7 @@ resultsMenu.on('longSelect', function(e) {
               subtitle: (doors[0].status + '       ').substring(0,11) + doors[1].status });
          },
         function(error) {
-          resultsMenu.item(0, 0, { title: 'Failed to operate door'});  
+          resultsMenu.item(0, 0, { title: 'Failed to operate ' + doors[1].name + ' door'});  
         }
     ); 
     break;
