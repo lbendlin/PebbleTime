@@ -3,7 +3,7 @@ var ajax = require('ajax');
 //var Accel = require('ui/accel');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.10 20161214';
+var version = 'v1.11 20161227';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var garageURL = 'http://lbendlin.dyndns.info:8082/doors.json';
 var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
@@ -11,6 +11,7 @@ var resultsMenu ;
 var menuItems = [];
 var forecastItems = [];
 var doorItems = [];
+var sensorItems = [];
 var statData = [];
 var doors = [];
 var selected = 0;
@@ -45,9 +46,9 @@ doorCard.on('show', function() {
   timeOut = setTimeout(function () { doorCard.hide(); },60000);
 });
 
-doorCard.on('longClick', 'up', function() {
+doorCard.on('click', 'up', function() {
   clearTimeout(timeOut);
-  doorCard.title('Operating ' + doors[0].name + ' door...');  
+  doorCard.title(doors[0].status=='closed'?'Opening ' + doors[0].name + ' door...':'Closing ' + doors[0].name + ' door...');  
   req = 'setdooractionpebble.aspx?d=' + doors[0].port;
      ajax({url: baseURL + req, type: 'json' },
         function(data) {
@@ -61,9 +62,9 @@ doorCard.on('longClick', 'up', function() {
     ); 
 });
 
-doorCard.on('longClick', 'down', function() {
+doorCard.on('click', 'down', function() {
   clearTimeout(timeOut);
-  doorCard.title('Operating ' + doors[1].name + ' door...');  
+  doorCard.title(doors[1].status=='closed'?'Opening ' + doors[1].name + ' door...':'Closing ' + doors[1].name + ' door...');  
   req = 'setdooractionpebble.aspx?d=' + doors[1].port;
      ajax({url: baseURL + req, type: 'json' },
         function(data) {
@@ -235,7 +236,7 @@ function getForecast() {
         // load weather forecast items
       hasForecast = true;
       forecastItems = [];  
-      for (var i = 0; i < 20; i++) {
+      for (var i = 0; i < 30; i++) {
             forecastItems.push({
                 title: data.hourly_forecast[i].FCTTIME.civil + ' ' + data.hourly_forecast[i].temp.english + ' F',
               subtitle: data.hourly_forecast[i].condition == data.hourly_forecast[i].wx ? data.hourly_forecast[i].condition : data.hourly_forecast[i].wx + ', ' + data.hourly_forecast[i].condition
@@ -271,6 +272,9 @@ resultsMenu = new UI.Menu({
     },{
       title: 'Outside',
         items: forecastItems
+    },{
+      title: 'Sensors',
+        items: sensorItems
     },{
       title: version
     }]
@@ -319,7 +323,7 @@ resultsMenu.on('longSelect', function(e) {
  switch(e.sectionIndex) {
   // operate right garage door without confirmation  
     case 0:
-     resultsMenu.item(0, 0, { title: 'Operating ' + doors[1].name + ' door',subtitle: ''});
+     resultsMenu.item(0, 0, {title: '', subtitle: doors[1].status=='closed'?'Opening ' + doors[1].name + ' door':'Closing ' + doors[1].name + ' door'});
      req = 'setdooractionpebble.aspx?d=' + doors[1].port;
      ajax({url: baseURL + req, type: 'json' },
         function(data) {
@@ -375,12 +379,20 @@ ajax({url: baseURL + 'tall.asp', type: 'json'},
           title: 'Temp: ' + statData.outside + 'F',
           subtitle: 'Humidity: ' + statData.humidity
         });
+        // load sensor data
+        for (i = 0; i < statData.sensorcount; i++) {
+            sensorItems.push({
+                title: statData.sensors[i].name + ' ' + statData.sensors[i].temp + 'F',
+              subtitle: statData.sensors[i].humidity + '% ' + statData.sensors[i].date
+            });
+        }
+      
         // Show the Menu, remove the splash
         resultsMenu.show();
         splashCard.hide();
     },
     function(error) {
         // Failure!
-        splashCard.subtitle('Cannot connect to thermostats');
+        splashCard.subtitle('Cannot connect to network');
     }
 );
