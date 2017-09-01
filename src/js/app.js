@@ -1,9 +1,8 @@
 var UI = require('ui');
 var ajax = require('ajax');
-//var Accel = require('ui/accel');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.11 20161227';
+var version = 'v1.13 20170831';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var garageURL = 'http://lbendlin.dyndns.info:8082/doors.json';
 var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
@@ -88,11 +87,13 @@ var detailCard = new UI.Card({
 
 detailCard.on('show', function() {
   //clearTimeout(timeOut);
-    statusLine = statData.thermostats[selected].tstate ? 'On ' : '';
+    statusLine = statData.thermostats[selected].tstate>0 ? 'On ' : '';
     statusLine += statData.thermostats[selected].override ? 'Over ' : '';
     statusLine += statData.thermostats[selected].hold ? 'Hold' : '';
     detailCard.title(statData.thermostats[selected].name + ' ' + statData.thermostats[selected].temp);
     detailCard.subtitle('Target ' + statData.thermostats[selected].t_heat);
+    if (statData.thermostats[selected].tstate==2)
+       detailCard.subtitle('Target ' + statData.thermostats[selected].t_cool);
     detailCard.body(statusLine + '\nOutside:' + statData.outside);
     timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
@@ -100,16 +101,28 @@ detailCard.on('show', function() {
 detailCard.on('click', 'up', function() {
     // Up click detected!
   //clearTimeout(timeOut);
+  if (statData.thermostats[selected].tmode == 1) {
     statData.thermostats[selected].t_heat++;
     detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
+  }
+  if (statData.thermostats[selected].tmode == 2) {
+    statData.thermostats[selected].t_cool++;
+    detailCard.subtitle('New target ' + statData.thermostats[selected].t_cool);
+  }
   timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
 
 detailCard.on('click', 'down', function() {
     // Down click detected!
   //clearTimeout(timeOut);
+  if (statData.thermostats[selected].tmode == 1) {
     statData.thermostats[selected].t_heat--;
     detailCard.subtitle('New target ' + statData.thermostats[selected].t_heat);
+  }
+  if (statData.thermostats[selected].tmode == 2) {
+    statData.thermostats[selected].t_cool--;
+    detailCard.subtitle('New target ' + statData.thermostats[selected].t_cool);
+  }
   timeOut = setTimeout(function () { detailCard.hide(); },60000);
 });
 
@@ -130,7 +143,9 @@ function getStatus(i) {
     ajax({url: baseURL + req, type: 'json'},
         function(data) {
             statData.thermostats[i].temp = data.temp;
+            statData.thermostats[i].tmode = data.tmode;
             statData.thermostats[i].t_heat = data.t_heat;
+            statData.thermostats[i].t_cool = data.t_cool;
             statData.thermostats[i].tstate = data.tstate;
             statData.thermostats[i].hold = data.hold;
             statData.thermostats[i].override = data.override;
@@ -190,16 +205,25 @@ function setAway(i) {
 
 function setTherm(i) {
       req = 'postjson.aspx?URL=http://' + statData.thermostats[i].ip;
-    req += '/tstat&json={"tmode":1,"t_heat":' + statData.thermostats[i].t_heat;
+      if(statData.thermostats[i].tmode ==1)
+        req += '/tstat&json={"tmode":1,"t_heat":' + statData.thermostats[i].t_heat;
+      if(statData.thermostats[i].tmode ==2)
+        req += '/tstat&json={"tmode":2,"t_cool":' + statData.thermostats[i].t_cool;
   req +=',"hold":' + statData.thermostats[i].hold + '}&r=' + Math.random();
 
     ajax({url: baseURL + req, type: 'text' },
         function(data) {
-          detailCard.body('Set to '+statData.thermostats[i].t_heat);  
+          if(statData.thermostats[i].tmode ==1)
+            detailCard.body('Set to '+statData.thermostats[i].t_heat); 
+          if(statData.thermostats[i].tmode ==2)
+            detailCard.body('Set to '+statData.thermostats[i].t_cool); 
           setTimeout(function () { detailCard.hide(); },1000);
         },
         function(error) {
+        if(statData.thermostats[i].tmode ==1)
             detailCard.body('failed to set temp to '+statData.thermostats[i].t_heat);
+        if(statData.thermostats[i].tmode ==2)
+            detailCard.body('failed to set temp to '+statData.thermostats[i].t_cool);
         }
     );
 }
@@ -223,7 +247,9 @@ function getDoorStatus() {
 
 function status(i) {
   var subTitle = statData.thermostats[i].temp + ' / ' + statData.thermostats[i].t_heat;
-  subTitle += statData.thermostats[i].tstate ? ' On' : '';
+  if(statData.thermostats[i].tmode ==2)
+    subTitle = statData.thermostats[i].temp + ' / ' + statData.thermostats[i].t_cool;
+  subTitle += statData.thermostats[i].tstate>0 ? ' On' : '';
   subTitle += statData.thermostats[i].override ? ' Over' : '';
   subTitle += statData.thermostats[i].hold ? ' Hold' : '';
   return subTitle;
@@ -321,10 +347,10 @@ resultsMenu.on('longSelect', function(e) {
   Vibe.vibrate('short');
   timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
  switch(e.sectionIndex) {
-  // operate right garage door without confirmation  
+  // operate left garage door without confirmation  
     case 0:
-     resultsMenu.item(0, 0, {title: '', subtitle: doors[1].status=='closed'?'Opening ' + doors[1].name + ' door':'Closing ' + doors[1].name + ' door'});
-     req = 'setdooractionpebble.aspx?d=' + doors[1].port;
+     resultsMenu.item(0, 0, {title: '', subtitle: doors[0].status=='closed'?'Opening ':'Closing ' + doors[0].name + ' door'});
+     req = 'setdooractionpebble.aspx?d=' + doors[0].port;
      ajax({url: baseURL + req, type: 'json' },
         function(data) {
           doors=data.doors;
@@ -333,7 +359,7 @@ resultsMenu.on('longSelect', function(e) {
               subtitle: (doors[0].status + '       ').substring(0,11) + doors[1].status });
          },
         function(error) {
-          resultsMenu.item(0, 0, { title: 'Failed to operate ' + doors[1].name + ' door'});  
+          resultsMenu.item(0, 0, { title: 'Failed to operate ' + doors[0].name + ' door'});  
         }
     ); 
     break;
