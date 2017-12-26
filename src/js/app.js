@@ -2,7 +2,7 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.13 20170831';
+var version = 'v1.14 20171226';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var garageURL = 'http://lbendlin.dyndns.info:8082/doors.json';
 var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
@@ -386,7 +386,7 @@ resultsMenu.on('longSelect', function(e) {
 splashCard.show();
 
 //get initial list of thermostats and their current data from database
-ajax({url: baseURL + 'tall.asp', type: 'json'},
+ajax({url: baseURL + 'tall.aspx', type: 'json'},
     function(data) {
         statData = data;
         // load doors. ignoring count
