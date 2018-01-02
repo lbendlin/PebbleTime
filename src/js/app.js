@@ -2,9 +2,9 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.14 20171226';
+var version = 'v1.15 201180101';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
-var garageURL = 'http://lbendlin.dyndns.info:8082/doors.json';
+var garageURL = 'http://lbendlin.dyndns.info:8082/';
 var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
 var resultsMenu ;
 var menuItems = [];
@@ -48,8 +48,8 @@ doorCard.on('show', function() {
 doorCard.on('click', 'up', function() {
   clearTimeout(timeOut);
   doorCard.title(doors[0].status=='closed'?'Opening ' + doors[0].name + ' door...':'Closing ' + doors[0].name + ' door...');  
-  req = 'setdooractionpebble.aspx?d=' + doors[0].port;
-     ajax({url: baseURL + req, type: 'json' },
+  req = 'swithdoor.php?d=' + doors[0].port;
+     ajax({url: garageURL + req, type: 'json' },
         function(data) {
           doors=data.doors;
           Vibe.vibrate('short');
@@ -231,7 +231,7 @@ function setTherm(i) {
 function getDoorStatus() {
  //can be had from the http server on the raspigarage
   //console.log('getting door status from ' + garageURL);
-    ajax({ url: garageURL, type: 'json' },
+    ajax({ url: garageURL + 'doors.json', type: 'json' },
         function(data) {
           doors = data.doors;
             resultsMenu.item(0, 0, { 
@@ -350,8 +350,8 @@ resultsMenu.on('longSelect', function(e) {
   // operate left garage door without confirmation  
     case 0:
      resultsMenu.item(0, 0, {title: '', subtitle: doors[0].status=='closed'?'Opening ':'Closing ' + doors[0].name + ' door'});
-     req = 'setdooractionpebble.aspx?d=' + doors[0].port;
-     ajax({url: baseURL + req, type: 'json' },
+     req = 'switchdoor.php?d=' + doors[0].port;
+     ajax({url: garageURL + req, type: 'json' },
         function(data) {
           doors=data.doors;
           Vibe.vibrate('short');
