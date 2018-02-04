@@ -2,7 +2,7 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Vibe = require('ui/vibe');
 
-var version = 'v1.15 201180101';
+var version = 'v1.16 20180203';
 var baseURL = 'http://lbendlin.dyndns.info:8081/t/';
 var garageURL = 'http://lbendlin.dyndns.info:8082/';
 var weatherURL = 'http://api.wunderground.com/api/404d7aebd67c26ec/hourly/q/02421.json';
@@ -23,7 +23,7 @@ var hasForecast = false;
 // Create a splashscreen with title and subtitle
 var splashCard = new UI.Card({
     title: 'Home Smart Home',
-    //titleColor: 'Blue',
+    titleColor: 'Blue',
     subtitle: 'Fetching status...'
 });
 
@@ -37,10 +37,10 @@ var doorCard = new UI.Card({
 
 doorCard.on('show', function() {
   //clearTimeout(timeOut);
-  statusLine = doors[0].name +' Door is ';
-  statusLine += doors[0].status + '.\n\n';
-  statusLine += doors[1].name +' Door is ';
-  statusLine += doors[1].status + '.';
+  statusLine = doors[0].name +' :\n';
+  statusLine += doors[0].status + '\n\n';
+  statusLine += doors[1].name +' :\n';
+  statusLine += doors[1].status ;
   doorCard.title(statusLine);
   timeOut = setTimeout(function () { doorCard.hide(); },60000);
 });
@@ -48,33 +48,39 @@ doorCard.on('show', function() {
 doorCard.on('click', 'up', function() {
   clearTimeout(timeOut);
   doorCard.title(doors[0].status=='closed'?'Opening ' + doors[0].name + ' door...':'Closing ' + doors[0].name + ' door...');  
-  req = 'swithdoor.php?d=' + doors[0].port;
-     ajax({url: garageURL + req, type: 'json' },
-        function(data) {
-          doors=data.doors;
-          Vibe.vibrate('short');
-          doorCard.hide();
-        },
-        function(error) {
-            doorCard.title('Failed to operate ' + doors[0].name + ' door');
-        }
-    ); 
+  doorCard.action('up','IMAGES_WAIT_PNG');
+  req = 'switchdoor.php?d=' + doors[0].port;
+  ajax({url: garageURL + req, type: 'json' },
+    function(data) {
+      doors=data.doors;
+      Vibe.vibrate('short');
+      doorCard.hide();
+    },
+    function(error) {
+      doorCard.title('Failed to operate ' + doors[0].name + ' door');
+      doorCard.action('up','IMAGES_MINUS_PNG');
+      Vibe.vibrate('long');
+    }
+  ); 
 });
 
 doorCard.on('click', 'down', function() {
   clearTimeout(timeOut);
   doorCard.title(doors[1].status=='closed'?'Opening ' + doors[1].name + ' door...':'Closing ' + doors[1].name + ' door...');  
-  req = 'setdooractionpebble.aspx?d=' + doors[1].port;
-     ajax({url: baseURL + req, type: 'json' },
-        function(data) {
-          doors=data.doors;
-          Vibe.vibrate('short');
-          doorCard.hide();
-        },
-        function(error) {
-            doorCard.title('Failed to operate ' + doors[1].name + ' door');
-        }
-    ); 
+  doorCard.action('down','IMAGES_WAIT_PNG');
+  req = 'switchdoor.php?d=' + doors[1].port;
+  ajax({url: garageURL + req, type: 'json' },
+    function(data) {
+      doors=data.doors;
+      Vibe.vibrate('short');
+      doorCard.hide();
+    },
+    function(error) {
+      doorCard.title('Failed to operate ' + doors[1].name + ' door');
+      doorCard.action('down','IMAGES_MINUS_PNG');
+      Vibe.vibrate('long');
+    }
+  ); 
 });
 
 var detailCard = new UI.Card({
@@ -348,8 +354,8 @@ resultsMenu.on('longSelect', function(e) {
   timeOut = setTimeout(function () { resultsMenu.hide(); },60000);
  switch(e.sectionIndex) {
   // operate left garage door without confirmation  
-    case 0:
-     resultsMenu.item(0, 0, {title: '', subtitle: doors[0].status=='closed'?'Opening ':'Closing ' + doors[0].name + ' door'});
+   case 0:
+     resultsMenu.item(0, 0, {title: '', subtitle: doors[0].status=='closed'?'Opening ' + doors[0].name + ' door':'Closing ' + doors[0].name + ' door'});
      req = 'switchdoor.php?d=' + doors[0].port;
      ajax({url: garageURL + req, type: 'json' },
         function(data) {
@@ -360,9 +366,10 @@ resultsMenu.on('longSelect', function(e) {
          },
         function(error) {
           resultsMenu.item(0, 0, { title: 'Failed to operate ' + doors[0].name + ' door'});  
+          Vibe.vibrate('long');
         }
-    ); 
-    break;
+      ); 
+     break;
       // toggle home/away for all thermostats
     case 1: 
 
@@ -383,6 +390,7 @@ resultsMenu.on('longSelect', function(e) {
 });
 
 // Display the splash
+Vibe.vibrate('short');
 splashCard.show();
 
 //get initial list of thermostats and their current data from database
@@ -420,5 +428,6 @@ ajax({url: baseURL + 'tall.aspx', type: 'json'},
     function(error) {
         // Failure!
         splashCard.subtitle('Cannot connect to network');
+        Vibe.vibrate('long');
     }
 );
